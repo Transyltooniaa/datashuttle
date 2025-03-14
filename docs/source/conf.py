@@ -156,10 +156,10 @@ html_theme_options = {
     ],
     
     "switcher": {
-        "json_url": "https://github.com/Transyltooniaa/datashuttle/tree/pipeline/docs/source/_static/switcher.json",
-        "version_match": release,
-    },
-     
+    # Use raw.githubusercontent.com for direct JSON access
+    "json_url": "https://raw.githubusercontent.com/Transyltooniaa/datashuttle/pipeline/docs/source/_static/switcher.json",
+    "version_match": release,
+},
     "logo": {
         "text": f"datashuttle v{release}",
         "image_light": "_static/logo_light.png",
