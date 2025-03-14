@@ -155,7 +155,7 @@ html_theme_options = {
         },
     ],
     
-     "switcher": {
+    "switcher": {
         "json_url": "https://github.com/Transyltooniaa/datashuttle/tree/pipeline/docs/source/_static/switcher.json",
         "version_match": release,
     },
@@ -165,7 +165,7 @@ html_theme_options = {
         "image_light": "_static/logo_light.png",
         "image_dark": "_static/logo_dark.png",
     },
-    "navbar_end": ["version-switcher","navbar-icon-links", "theme-switcher"],
+    # "navbar_end": ["version-switcher","navbar-icon-links", "theme-switcher"],
     "footer_start": ["footer_start"],
     "footer_end": ["footer_end"],
     "show_prev_next": False,
