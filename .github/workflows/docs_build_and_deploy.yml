@@ -24,7 +24,7 @@ jobs:
 
   build_sphinx_docs:
     name: Build Sphinx Docs
-    needs: linting  # remove "needs: linting" if you remove the linting job
+    needs: linting
     runs-on: ubuntu-latest
     steps:
       - name: Check out the repository

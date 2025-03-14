@@ -180,4 +180,4 @@ html_theme_options = {
 # The default is the URL of the GitHub pages
 # https://www.sphinx-doc.org/en/master/usage/extensions/githubpages.html
 github_user = "JoeZiminski"
-html_baseurl = "https://datashuttle.neuroinformatics.dev/"
+# html_baseurl = "https://datashuttle.neuroinformatics.dev/"
