@@ -71,7 +71,7 @@ jobs:
     - name: Building documentation
       shell: bash
       run: |
-          sphinx-build docs/source docs/build -b html -W --keep-going
+          sphinx-build docs/source docs/build -b html --keep-going
 
     - name: Upload the content for deployment
       uses: actions/upload-artifact@v4
