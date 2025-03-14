@@ -27,57 +27,56 @@ jobs:
     needs: linting
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    # Need the tags so that setuptools-scm can form a valid version number
-    - name: Fetch git tags
-      run: git fetch origin 'refs/tags/*:refs/tags/*'
+      # Need the tags so that setuptools-scm can form a valid version number
+      - name: Fetch git tags
+        run: git fetch origin 'refs/tags/*:refs/tags/*'
 
-    - name: Setup Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ inputs.python-version }}
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
 
-    - name: Upgrade pip
-      shell: bash
-      run: |
-        # install pip=>20.1 to use "pip cache dir"
-        python3 -m pip install --upgrade pip
+      - name: Upgrade pip
+        shell: bash
+        run: |
+          # install pip>=20.1 to use "pip cache dir"
+          python3 -m pip install --upgrade pip
 
-    - name: Get pip cache dir
-      shell: bash
-      id: pip-cache
-      run: echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
+      - name: Get pip cache dir
+        shell: bash
+        id: pip-cache
+        run: echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
 
-    - name: Cache dependencies
-      uses: actions/cache@v4
-      with:
-        path: ${{ steps.pip-cache.outputs.dir }}
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pip-cache.outputs.dir }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
 
-    - name: Install dependencies
-      shell: bash
-      run: python3 -m pip install -r ./docs/requirements.txt
+      - name: Install dependencies
+        shell: bash
+        run: python3 -m pip install -r ./docs/requirements.txt
 
-    - name: Check links
-      shell: bash
-      run: |
-          sphinx-build docs/source docs/build -b linkcheck
+      - name: Check links
+        shell: bash
+        run: |
+            sphinx-build docs/source docs/build -b linkcheck
 
-    # needs to have sphinx.ext.githubpages in conf.py extensions list
-    - name: Building documentation
-      shell: bash
-      run: |
-          sphinx-build docs/source docs/build -b html --keep-going
+      - name: Building documentation
+        shell: bash
+        run: |
+            sphinx-build docs/source docs/build -b html --keep-going
 
-    - name: Upload the content for deployment
-      uses: actions/upload-artifact@v4
-      with:
-        name: docs-${{ github.sha }}
-        path: ./docs/build/
+      - name: Upload the content for deployment
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs-${{ github.sha }}
+          path: ./docs/build/
 
   deploy_sphinx_docs:
     name: Deploy Sphinx Docs
@@ -108,79 +107,68 @@ jobs:
 
       - name: Push the built HTML to gh-pages
         run: |
-          # Detect if this is a release or from the main branch
           echo "Event name: ${{ github.event_name }}"
           echo "Ref type: ${{ github.ref_type }}"
           if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref_type }}" = "tag" ]; then
-              # Get the tag name without the "refs/tags/" part
+              # Extract the tag name as the version
               version="${GITHUB_REF#refs/*/}"
           else
               version=dev
           fi
           echo "Deploying version: $version"
-          # Make the new commit message. Needs to happen before cd into deploy
-          # to get the right commit hash.
+          # Create a commit message before changing directories
           message="Deploy $version from $(git rev-parse --short HEAD)"
           cd deploy
-          # Need to have this file so that Github doesn't try to run Jekyll
+          # Prevent GitHub Pages from applying Jekyll processing
           touch .nojekyll
-          # Delete all the files and replace with our new  set
           echo -e "\nRemoving old files from previous builds of ${version}:"
           rm -rvf ${version}
           echo -e "\nCopying HTML files to ${version}:"
           cp -Rvf ../docs/build ${version}/
 
+          # Only update switcher.json and the latest folder for tagged releases
           if [[ "${version}" != "dev" ]]; then
-            # Updated switcher.json file
-            SWITCHER_CONTENT=$(curl https://github.com/Transyltooniaa/datashuttle/tree/finalTest/docs/source/_static/switcher.json)
-            BASE_URL="$(jq -r '.[1].url|split("/")[0:3]|join("/")' <<< $SWITCHER_CONTENT)"
-            NEW_URL="${BASE_URL}/latest/"
-            # Extract the current latest version entry
-            FIRST_ENTRY=$(jq '.[0]' <<< "${SWITCHER_CONTENT}")
-            CURRENT_LATEST_VERSION=$(echo $(jq '.[1].version' <<< "${SWITCHER_CONTENT}") | tr -d '"')
-
-            # Remove the "name" field from the current latest entry
-            UPDATED_CURRENT_LATEST_ENTRY=$(jq --arg url "${BASE_URL}/${CURRENT_LATEST_VERSION}" '.[1] | .url = $url | del(.name)' <<< "$SWITCHER_CONTENT")
-
-            # Create the new version entry with the "latest" tag
-            NEW_ENTRY=$(jq -n --arg version "${version}" --arg url "$NEW_URL" --arg name "$version (latest)" \
-            '{name: $name, version: $version, url: $url}')
-
-            # Combine the entries in the desired order
-            UPDATED_SWITCHER_CONTENT=$(jq --argjson first_entry "$FIRST_ENTRY" --argjson new_entry "$NEW_ENTRY" --argjson updated_current_latest "$UPDATED_CURRENT_LATEST_ENTRY" '[$first_entry, $new_entry, $updated_current_latest] + .[2:]' <<< "$SWITCHER_CONTENT")
-
-            SWITCHER_FILE="${version}/_static/switcher.json"
-            # Write the updated content back to switcher.json
-            echo "$UPDATED_SWITCHER_CONTENT" > "$SWITCHER_FILE"
-
-            echo "${version}/_static/switcher.json has been updated successfully."
+            # Attempt to read the existing switcher.json from the deployed latest docs
+            if [ -f "latest/_static/switcher.json" ]; then
+                SWITCHER_CONTENT=$(cat latest/_static/switcher.json)
+            else
+                SWITCHER_CONTENT='[]'
+            fi
+            # Extract the BASE_URL from the first entry if possible
+            BASE_URL=$(echo "$SWITCHER_CONTENT" | jq -r '.[0].url | split("/")[0:3] | join("/")')
+            if [[ -z "$BASE_URL" || "$BASE_URL" == "null" ]]; then
+              BASE_URL="https://transyltooniaa.github.io/datashuttle"
+            fi
+            NEW_URL="${BASE_URL}/${version}/"
+            # Create the new version entry
+            NEW_ENTRY=$(jq -n --arg version "${version}" --arg url "${NEW_URL}" \
+              '{"version": $version, "url": $url}')
+            # Append the new entry, ensure uniqueness, and sort entries (reverse order)
+            UPDATED_SWITCHER_CONTENT=$(jq --argjson new_entry "$NEW_ENTRY" '
+              . + [$new_entry] | unique_by(.version) | sort_by(.version) | reverse
+            ' <<< "$SWITCHER_CONTENT")
+            # Make sure the _static directory exists in the new version
+            mkdir -p "${version}/_static"
+            # Write the updated switcher content to the new version's _static directory
+            echo "$UPDATED_SWITCHER_CONTENT" > "${version}/_static/switcher.json"
+            echo "Updated ${version}/_static/switcher.json:"
+            cat "${version}/_static/switcher.json"
           fi
 
-          # If this is a new release, update the link from /latest to it
+          # For tagged releases, update the "latest" directory with the new version
           if [[ "${version}" != "dev" ]]; then
-              echo -e "\nSetup link from ${version} to 'latest'."
-              rm -f latest
-              ln -sf ${version} latest
+              echo -e "\nUpdating latest directory to ${version}."
+              rm -rf latest
+              cp -R ${version} latest
           fi
-          # Stage the commit
+          # Stage, commit, and push changes to gh-pages
           git add -A .
           echo -e "\nChanges to be applied:"
           git status
-          # Configure git to be the GitHub Actions account
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
-          # If this is a dev build and the last commit was from a dev build
-          # (detect if "dev" was in the previous commit message), reuse the
-          # same commit
-          if [[ "${version}" == "dev" && `git log -1 --format='%s'` == *"dev"* ]]; then
-              echo -e "\nAmending last commit:"
-              git commit --amend --reset-author -m "$message"
-          else
-              echo -e "\nMaking a new commit:"
-              git commit -m "$message"
-          fi
-          # Make the push quiet just in case there is anything that could leak
-          # sensitive information.
+          echo -e "\nCommitting changes:"
+          git commit -m "$message" || echo "No changes to commit."
           echo -e "\nPushing changes to gh-pages."
-          git push -fq origin gh-pages 2>&1 >/dev/null
+          git push origin gh-pages
           echo -e "\nFinished uploading generated files."
