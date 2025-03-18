@@ -152,7 +152,7 @@ html_theme_options = {
     ],
     
     "switcher": {
-    # Use raw.githubusercontent.com for direct JSON access
+    # Use raw.githubusercontent.com for direct JSON access.
     "json_url": "g",
     "version_match": f"v{release}",
 },
