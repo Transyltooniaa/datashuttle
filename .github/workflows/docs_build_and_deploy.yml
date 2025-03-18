@@ -134,7 +134,16 @@ jobs:
           if [[ "${version}" != "dev" ]]; then
             # Updated switcher.json file
             SWITCHER_CONTENT=$(curl https://raw.githubusercontent.com/Transyltooniaa/datashuttle/testing_pipeline/docs/source/_static/switcher.json)
+            # Debug: Print fetched content
+            echo "Fetched switcher.json content:"
             echo "$SWITCHER_CONTENT"
+
+            # Check if content is empty
+            if [[ -z "$SWITCHER_CONTENT" ]]; then
+                echo "Error: switcher.json could not be fetched or is empty."
+                exit 1
+            fi
+
             BASE_URL="$(jq -r '.[1].url|split("/")[0:3]|join("/")' <<< $SWITCHER_CONTENT)"
             NEW_URL="${BASE_URL}/latest/"
             # Extract the current latest version entry
