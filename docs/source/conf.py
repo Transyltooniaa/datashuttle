@@ -108,10 +108,6 @@ html_theme = "pydata_sphinx_theme"
 html_title = "datashuttle"
 
 
-# Redirect the webpage to another URL
-# Sphinx will create the appropriate CNAME file in the build directory
-# https://www.sphinx-doc.org/en/master/usage/extensions/githubpages.html
-html_baseurl = "https://datashuttle.neuroinformatics.dev/"
 
 
 # Add any paths that contain custom static files (such as style sheets) here,
@@ -155,12 +151,10 @@ html_theme_options = {
         },
     ],
     
-    
-    #TODO : Update the correct json_url according to the release
     "switcher": {
     # Use raw.githubusercontent.com for direct JSON access
-    "json_url": "https://raw.githubusercontent.com/neuroinformatics-unit/datashuttle/main/docs/source/_static/switcher.json",
-    "version_match": release,
+    "json_url": "g",
+    "version_match": f"v{release}",
 },
     "logo": {
         "text": f"datashuttle v{release}",
