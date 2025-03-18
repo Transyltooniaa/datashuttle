@@ -1,6 +1,10 @@
 [
-    {
+  {
       "version": "dev",
       "url": "https://transyltooniaa.github.io/datashuttle/"
-    }
+  },
+  {
+      "version": "1.0.0",
+      "url": "https://transyltooniaa.github.io/datashuttle/1.0.0/"
+  }
 ]
